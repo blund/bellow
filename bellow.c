@@ -176,7 +176,7 @@ void ADD() {
 void MUL() {
 	u32 a = stack_pop(&data_stack);
 	u32 b = stack_pop(&data_stack);
-	stack_push(&data_stack, a+b);
+	stack_push(&data_stack, a*b);
 }
 
 
@@ -370,9 +370,9 @@ void CREATE() {
   char* name_addr = (char*)stack_pop(&data_stack);
   int   name_len  = stack_pop(&data_stack);
     
-  Word* ptr = (Word*)stack_pop(&data_stack);
+  printf(" -- [CREATE: creating word '%s'\n", name_addr);
+
   declare_word(name_addr, 0);
-  
 }
 
 void COMMA() {
@@ -510,15 +510,21 @@ void INTERPRET() {
   u8    flags_and_len = word->flags_and_len;
   u32*  eax_ptr  = &word->data; // Ekvivalent til TCFA
 
+  // Check if the word is marked as immediate
+  // IF so, skip state check and execute immediately!
+  if (flags_and_len & FLAG_IMMED) goto immediate;
+
+
   if (ctx.STATE == STATE_COMPILE) {
     // --> 2nd CASE: COMPILE
     // Compile the eax addr of the function into the current word
-    printf(" -- [INTERPRET: in compile mode, putting function into the stack]\n");
+    printf(" -- [INTERPRET: in compile mode, appending to function into the stack]\n");
     stack_push(&data_stack, addr);
     COMMA();
     return;
   }
 
+ immediate:
   // --> 2nd CASE: IMMEDIATE
   printf(" -- [INTERPRET: in immediate mode, executing word]\n");
   // Call function corresponding to the word
