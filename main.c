@@ -160,6 +160,7 @@ int main() {
     add_code_to_word(INTERPRET);
 	
     Word* quit = declare_word("QUIT", 0);
+    add_code_to_word(DOCOL);
     add_code_to_word(RZ);
     add_code_to_word(RSPSTORE);
     add_code_to_word(INTERPRET);
