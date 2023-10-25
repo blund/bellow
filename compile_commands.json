@@ -1,0 +1,32 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-m32",
+      "-I.",
+      "-ggdb",
+      "-o",
+      "bellow",
+      "main.c"
+    ],
+    "directory": "/home/blund/prosjekt/personlig/bellOS/pcboot/src/bellow",
+    "file": "/home/blund/prosjekt/personlig/bellOS/pcboot/src/bellow/main.c",
+    "output": "/home/blund/prosjekt/personlig/bellOS/pcboot/src/bellow/bellow"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-m32",
+      "-I.",
+      "-ggdb",
+      "-o",
+      "bellow",
+      "bellow.c"
+    ],
+    "directory": "/home/blund/prosjekt/personlig/bellOS/pcboot/src/bellow",
+    "file": "/home/blund/prosjekt/personlig/bellOS/pcboot/src/bellow/bellow.c",
+    "output": "/home/blund/prosjekt/personlig/bellOS/pcboot/src/bellow/bellow"
+  }
+]
