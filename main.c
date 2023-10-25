@@ -146,8 +146,6 @@ int main() {
     add_code_to_word(HIDDEN);
     add_code_to_word(EXIT);
     
-
-
     declare_word("INTERPRET", 0);
     add_code_to_word(INTERPRET);
 	
@@ -157,12 +155,6 @@ int main() {
     add_code_to_word(INTERPRET);
     add_code_to_word(BRANCH);
     add_code_to_word((FN)-8);
-
-    Word* smt = declare_word("SMT", 0);
-    add_code_to_word(say_the_thing);
-    add_code_to_word(BRANCH);
-    add_code_to_word((FN)-8);
-
 
     // ~~~ SETUP! ~~~
     ctx.S0 = (u32)ptr0;

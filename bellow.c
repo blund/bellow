@@ -159,7 +159,9 @@ void LIT() {
 
 
 void DROP() {
-	stack_pop(&data_stack);
+	u32 val = stack_pop(&data_stack);
+	printf("dropped: %d\n", val);
+
 	
 }
 
@@ -176,7 +178,6 @@ void DUP() {
 	u32 a = stack_pop(&data_stack);
 	stack_push(&data_stack, a);
 	stack_push(&data_stack, a);
-	
 }
 
 
@@ -345,8 +346,8 @@ void FIND() {
   
   // Strengene er like, så vi fant vår peker!
   // Push addresse på stack og vær lykkelig
-  stack_push(&data_stack, (u32)latest->data);
-  printf(" -- [FIND: '%s' a word, data addr %p]\n", name_addr, latest->data);
+  stack_push(&data_stack, (u32)latest);
+  printf(" -- [FIND: '%s' a word, data addr %p]\n", name_addr, latest);
   return;
 
 }
@@ -444,64 +445,88 @@ void TELL() {
 //         Det gjør denne koden litt tydeligere
 void INTERPRET() {
   puts(" -- [INTERPRET]");
-  int interpret_is_lit = 0;
+
+  /*
+    HVA VIL VIL GJØRE???
+    - Kompilere funksjon
+     - Funksjon -> Kompiler inn funksjon (comma)
+     - Literal  -> Kompiler inn LIT og tallet
+    - Kjøre kode
+     - Funksjon -> kall funksjonen
+     - Literal  -> putt tallet på stacken
+
+     |-------------------------------|
+     |         | Compile | Immediate |
+     |-------------------------------|
+     | Word    | WC      | WI        |
+     |-------------------------------|
+     | Literal | LC      | LC        |
+     |-------------------------------|
+
+     Evaluering av alternativene kan gjøres på to vis.
+     Det naturlige virker å være Compile og Immediate
+
+     
+   */
 
   WORD();
   FIND();
   u32 addr = stack_pop(&data_stack);
 
-  // Sjekk om addr er 0. I så fall, gå ut i fra at det er et tall :)
-  if (addr == 0) goto number;
+  // -> 1st CASE: LITERAL
+  if (addr == 0) {
+    NUMBER();
+    u32 remaining = stack_pop(&data_stack);
+    u32 number    = stack_pop(&data_stack);
+    if (remaining != 0) {
+      printf(" -- [INTERPRET: parse failed, disregarding input]\n");
+      return;
+    }
 
-  // Sjekk om det er immediate
-  Word* word = (Word*)addr;
-  u8 flags_and_len  = word->flags_and_len;
-  u32* codeword_ptr = word->data; // Ekvivalent til TCFA
+    // --> 2nd CASE: COMPILE
+    // Compile in LIT and the number
+    if (ctx.STATE == STATE_COMPILE) {
+      printf(" -- [INTERPRET: Compiling literal into current word!]\n");
+      stack_push(&data_stack, number);
+      stack_push(&data_stack, (u32)LIT);
+      COMMA();
+      COMMA();
+      return;
+    }
 
-  ctx.eax = codeword_ptr;
-  
-  if (flags_and_len & FLAG_IMMED) goto compile_or_exec;
-  
-
- number: // 1
-  interpret_is_lit = 1;
-
-  // Sett tallet tilbake på stacken
-  NUMBER();
-  u32 remaining = stack_pop(&data_stack);
-  u32 number    = stack_pop(&data_stack);
-  if (remaining != 0) {
-    printf(" -- [INTERPRET: parse failed, disregarding input]\n");
+    // --> 2nd CASE IMMEDIATE
+    // Push integer on the stack
+    printf(" -- [INTERPRET: Putting literal value on the stack!]\n");
+    stack_push(&data_stack, number);
     return;
   }
-  stack_push(&data_stack, (u32)LIT);
-  stack_push(&data_stack, remaining);
+
+
+  
+  // -> 1st CASE: WORD
+  // The word was in the dictionary ( addr != 0 )
+  
+  Word* word = (Word*)addr;
+  u8    flags_and_len = word->flags_and_len;
+  u32*  codeword_ptr  = word->data; // Ekvivalent til TCFA
+
+  if (ctx.STATE == STATE_COMPILE) {
+    // --> 2nd CASE: COMPILE
+    // Compile the codeword addr of the function into the current word
+    printf(" -- [INTERPRET: in compile mode, putting function into the stack]\n");
+    stack_push(&data_stack, addr);
+    COMMA();
+    return;
+  }
+
+  // --> 2nd CASE: IMMEDIATE
+  printf(" -- [INTERPRET: in immediate mode, executing word]\n");
+  // Call function corresponding to the word
+  ctx.eax = codeword_ptr;
+  _call(ctx.eax);
   return;
 
- compile_or_exec:
-  // Sjekk om vi er i immediate eller compile mode
-  if (ctx.STATE == STATE_IMMEDIATE) goto exec;
-
-  // Case: compile mode!
-  stack_push(&data_stack, addr);
-  COMMA();
-  if (interpret_is_lit == 0) 
-  
- exec: // 4
-  if (interpret_is_lit == 0) goto exec_literal;
-  ((FN)ctx.eax)();
-  
- exec_literal: // 5
-  // HER SKAL TALLET FRA NUM SETTES PÅ STACKEN HVIS DET VAR ET TALL...
-
- error: // 6
-
- print_error: // 7
-
-  return;
 }
-
-
 
 void DIE() {
   puts("DIE!\n");
