@@ -53,6 +53,7 @@ int main() {
     // Declare some base variables
 
     declare_var_STATE();
+    declare_var_HERE();
     declare_var_LATEST();
     declare_var_SZ();
     declare_var_BASE();
@@ -64,6 +65,7 @@ int main() {
     declare_word("DIE", 0);
     add_code_to_word(DIE);
 
+    
     declare_word("LIT", 0);
     add_code_to_word(LIT);
 
@@ -76,7 +78,12 @@ int main() {
     declare_word("DUP", 0);
     add_code_to_word(DUP);
 
+    declare_word("+", 0);
+    add_code_to_word(ADD);
   
+    declare_word("*", 0);
+    add_code_to_word(MUL);
+
     declare_word("!", 0);
     add_code_to_word(STORE);
 
@@ -119,6 +126,7 @@ int main() {
 
 
     declare_word(":", 0);
+    add_code_to_word(DOCOL);
     add_code_to_word(WORD);
     add_code_to_word(CREATE);
     add_code_to_word(LIT);
@@ -130,7 +138,8 @@ int main() {
     add_code_to_word(RBRAC);
     add_code_to_word(EXIT);
 
-    declare_word(";", 0);
+    declare_word(";", FLAG_IMMED);
+    add_code_to_word(DOCOL);
     add_code_to_word(LIT);
     add_code_to_word(EXIT);
     add_code_to_word(COMMA);
@@ -141,6 +150,7 @@ int main() {
     add_code_to_word(EXIT);
 
     declare_word("HIDE", 0);
+    add_code_to_word(DOCOL);
     add_code_to_word(WORD);
     add_code_to_word(FIND);
     add_code_to_word(HIDDEN);
@@ -158,11 +168,11 @@ int main() {
 
     // ~~~ SETUP! ~~~
     ctx.S0 = (u32)ptr0;
-    ctx.esi = &quit->data;
+    ctx.instr_ptr = &quit->data;
 
  call:
-    ctx.eax = _deref(ctx.esi++);
-    _call(ctx.eax);
+    ctx.eax = ctx.instr_ptr++;
+    _call(*ctx.eax);
     goto call;
 
     // Vi kan ikke kalle NEXT() på slutten av hver

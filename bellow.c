@@ -11,19 +11,19 @@
 
 char    word_buffer[32];
 ForthCtx ctx = {
-	.esi = 0,
+	.instr_ptr = 0,
 	.eax = 0,
 	.LATEST = 0,
 };
 
 
 Stack return_stack = {
-	.capacity = 4096, // @MERK - HELT VILKÅRLIG!
+	.capacity = 128*1024, // @MERK - HELT VILKÅRLIG!
 	.top     = -1,
 };
 
 Stack data_stack = {
-	.capacity = 4096, // @MERK - HELT VILKÅRLIG!
+	.capacity = 128*1024, // @MERK - HELT VILKÅRLIG!
 	.top     = -1,
 };
 
@@ -48,7 +48,6 @@ inline u32 stack_pop(Stack* stack) {
   stack->top--;
   return guy;
 }
-
 
 inline Word* declare_word(char* name, int flags) {
 	Word* new_word = (Word*)ctx.HERE;
@@ -91,7 +90,6 @@ make_declare_var("BASE",   BASE,   &ctx.BASE,  10);
 
 #define make_declare_const(name, label, value)	\
   void label() {				\
-    puts("RZ!");				\
     stack_push(&data_stack, value);		\
 						\
   }						\
@@ -102,7 +100,7 @@ make_declare_var("BASE",   BASE,   &ctx.BASE,  10);
 
 #include <asm/unistd.h>
 make_declare_const("VERSION", VERSION, 1);
-make_declare_const("R0", RZ, (u32)return_stack.data);
+make_declare_const("R0", RZ, (u32)return_stack.top);
 //make_declare_const("DOCOL", __DOCOL, DOCOL);
 
 make_declare_const("F_IMMED", __F_IMMED, FLAG_IMMED);
@@ -125,36 +123,25 @@ make_declare_const("O_EXCL", __O_EXCL, 0x0200);
 make_declare_const("O_TRUNC", __O_TRUNC, 0x01000);
 make_declare_const("O_APPEND", __O_APPEND, 0x02000);
 make_declare_const("O_NONBLOCK", __O_NONBLOCK, 0x04000);
-
-void push_return_stack(u32 val /* val to be written to the stack */) {
-	stack_push(&return_stack, val);
-}
-
-void pop_return_stack(u32* ptr /* where to put the popped value */) {
-	*(u32*)ptr = stack_pop(&return_stack);
-}
-
 /* DEFINISJONER AV FORTH ORD! */
 
 
 
 void DOCOL() {
-	push_return_stack((int)ctx.esi);
-	ctx.esi = ctx.eax + 1; // @MERk - +1 begrunn av peker-aritmetikk
-	
+  stack_push(&return_stack, (u32)ctx.instr_ptr);
+  ctx.instr_ptr = ctx.eax + 1; // @MERk - +1 begrunn av peker-aritmetikk
 }
 
 void EXIT() {
-	pop_return_stack(ctx.esi);
-	// @TODO - denne skal vanlig vis kalle next...
+  ctx.instr_ptr = (u32*)stack_pop(&return_stack);
+  return;
 }
 
 
 void LIT() {
-	ctx.eax = _deref(ctx.esi); 	// Samme som lodsl
-	ctx.esi++;			//
-
-	stack_push(&data_stack, (u32)ctx.eax);
+	ctx.eax = _deref(ctx.instr_ptr); 	// Samme som lodsl
+	ctx.instr_ptr++;
+	stack_push(&data_stack, ctx.eax);
 }
 
 
@@ -179,6 +166,19 @@ void DUP() {
 	stack_push(&data_stack, a);
 	stack_push(&data_stack, a);
 }
+
+void ADD() {
+	u32 a = stack_pop(&data_stack);
+	u32 b = stack_pop(&data_stack);
+	stack_push(&data_stack, a+b);
+}
+
+void MUL() {
+	u32 a = stack_pop(&data_stack);
+	u32 b = stack_pop(&data_stack);
+	stack_push(&data_stack, a+b);
+}
+
 
 
 void STORE() {
@@ -217,6 +217,7 @@ void RSPFETCH() {
 
 void RSPSTORE() {
 	return_stack.top = stack_pop(&data_stack);
+	printf("Return stack top is now: %d\n", return_stack.top);
 	
 }
 
@@ -405,9 +406,8 @@ void HIDDEN() {
 
 void TICK() {
   // @FIKS - lodsl, skriv om med WORD, FIND, >CFA i Forth
-  u32 next = *ctx.esi;
-  ctx.eax = (u32*)next;
-  ctx.esi += 1;
+  u32 next = *ctx.instr_ptr;
+  ctx.instr_ptr++;
 
   stack_push(&data_stack, next);
   
@@ -415,9 +415,9 @@ void TICK() {
 
 void BRANCH() {
   puts(" -- [BRANCH]\n");
-  u32 esi = (u32)ctx.esi;
-  esi += *ctx.esi;
-  ctx.esi = (u32*)esi;
+  u32 base_addr = (u32)ctx.instr_ptr;
+  u32 offset    = *ctx.instr_ptr; // Add offset (avoid pointer arithmetic.........)
+  ctx.instr_ptr = (u32*)(base_addr + offset);
   
 }
 
@@ -427,8 +427,8 @@ void BRANCH0() {
     BRANCH();
   } else {
     // lodsl
-    ctx.eax = (u32*)*ctx.esi;
-    ctx.esi++;
+    ctx.eax = (u32*)ctx.instr_ptr;
+    ctx.instr_ptr++;
   }
   
 }
@@ -508,11 +508,11 @@ void INTERPRET() {
   
   Word* word = (Word*)addr;
   u8    flags_and_len = word->flags_and_len;
-  u32*  codeword_ptr  = word->data; // Ekvivalent til TCFA
+  u32*  eax_ptr  = &word->data; // Ekvivalent til TCFA
 
   if (ctx.STATE == STATE_COMPILE) {
     // --> 2nd CASE: COMPILE
-    // Compile the codeword addr of the function into the current word
+    // Compile the eax addr of the function into the current word
     printf(" -- [INTERPRET: in compile mode, putting function into the stack]\n");
     stack_push(&data_stack, addr);
     COMMA();
@@ -522,8 +522,8 @@ void INTERPRET() {
   // --> 2nd CASE: IMMEDIATE
   printf(" -- [INTERPRET: in immediate mode, executing word]\n");
   // Call function corresponding to the word
-  ctx.eax = codeword_ptr;
-  _call(ctx.eax);
+  ctx.eax = eax_ptr;
+  _call(*ctx.eax);
   return;
 
 }

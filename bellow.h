@@ -27,7 +27,8 @@ typedef struct Word {
 // The Forth execution context.
 // All Forth functions should refer to this common context
 typedef struct ForthCtx {
-    u32* eax;	// return value usually
+    u32* eax;
+    u32* instr_ptr; 	// 'instruction' pointer
 
     u32 STATE;
     u32* HERE;
@@ -36,11 +37,6 @@ typedef struct ForthCtx {
     u32 BASE;
 
     u32 R0;
-
-    u32* esp;
-
-    u32* edi;
-    u32* esi; 	// 'instruction' pointer
 } ForthCtx;
 
 enum Flags {
@@ -88,6 +84,9 @@ void LIT();
 void DROP();
 void SWAP();
 void DUP();
+
+void ADD();
+void MUL();
 
 void STORE();
 void FETCH();
