@@ -496,7 +496,7 @@ void INTERPRET() {
 	// --> 2nd CASE: COMPILE
 	// Compile the eax addr of the function into the current word
 	printf(" -- [INTERPRET: in compile mode, appending to function into the stack]\n");
-	stack_push(&data_stack, addr);
+	stack_push(&data_stack, (u32)word->data);
 	COMMA();
 	return;
     }
