@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 #include "bellow.h"
 
@@ -14,8 +16,10 @@ ForthCtx ctx = {
     .instr_ptr = 0,
     .eax = 0,
     .LATEST = 0,
+    .debug_prints = 1,
 };
 
+#define dprintf(arg, ...) do { if (ctx.debug_prints) printf(arg, ##__VA_ARGS__); } while (0)
 
 Stack return_stack = {
     .capacity = 128*1024, // @MERK - HELT VILKÅRLIG!
@@ -86,6 +90,7 @@ make_declare_var("HERE",   HERE,   &ctx.HERE,   0);
 make_declare_var("LATEST", LATEST, &ctx.LATEST, 0);
 make_declare_var("S0",     SZ,     &ctx.S0,     0);
 make_declare_var("BASE",   BASE,   &ctx.BASE,  10);
+make_declare_var("DPRINT", DPRINT, &ctx.debug_prints,  1);
 
 
 #define make_declare_const(name, label, value)	\
@@ -147,7 +152,7 @@ void LIT() {
 
 void DROP() {
     u32 val = stack_pop(&data_stack);
-    printf("dropped: %d\n", val);
+    dprintf("dropped: %d (%f)\n", val, *(f32*)&val);
 }
 
 void SWAP() {
@@ -163,17 +168,75 @@ void DUP() {
     stack_push(&data_stack, a);
 }
 
+void DUP2() {
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
+    stack_push(&data_stack, b);
+    stack_push(&data_stack, a);
+    stack_push(&data_stack, b);
+    stack_push(&data_stack, a);
+}
+
+
 void ADD() {
     u32 a = stack_pop(&data_stack);
     u32 b = stack_pop(&data_stack);
     stack_push(&data_stack, a+b);
 }
 
+void SUB() {
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
+    stack_push(&data_stack, a-b);
+}
+
+
 void MUL() {
     u32 a = stack_pop(&data_stack);
     u32 b = stack_pop(&data_stack);
     stack_push(&data_stack, a*b);
 }
+
+void MOD() {
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
+    stack_push(&data_stack, a % b);
+}
+
+void DIV() {
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
+    stack_push(&data_stack, a / b);
+}
+
+void /* it's just a */ FADD() {
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
+    f32 sum = (*(float*)&a + *(float*)&b);
+    stack_push(&data_stack, *(u32*)&sum);
+}
+
+void FSUB() {
+    f32 a = stack_pop(&data_stack);
+    f32 b = stack_pop(&data_stack);
+    f32 sum = (*(float*)&a - *(float*)&b);
+    stack_push(&data_stack, *(u32*)&sum);
+}
+
+void FMUL() {
+    f32 a = stack_pop(&data_stack);
+    f32 b = stack_pop(&data_stack);
+    f32 sum = (*(float*)&a * *(float*)&b);
+    stack_push(&data_stack, *(u32*)&sum);
+}
+
+void FDIV() {
+    f32 a = stack_pop(&data_stack);
+    f32 b = stack_pop(&data_stack);
+    f32 sum = (*(float*)&a / *(float*)&b);
+    stack_push(&data_stack, *(u32*)&sum);
+}
+
 
 
 
@@ -208,7 +271,7 @@ void RSPFETCH() {
 
 void RSPSTORE() {
     return_stack.top = stack_pop(&data_stack);
-    printf("Return stack top is now: %d\n", return_stack.top);
+    dprintf("Return stack top is now: %d\n", return_stack.top);
 }
 
 void RSPDROP() {
@@ -235,7 +298,7 @@ void KEY() {
 
 void EMIT() {
     char to_write = stack_pop(&data_stack);
-    printf("%c", to_write); // Ikke gjør det her...
+    dprintf("%c", to_write); // Ikke gjør det her...
 }
 
 
@@ -268,7 +331,7 @@ void WORD() {
     int len = pointer - word_buffer;
     u32 addr = (u32)word_buffer;
 
-    printf(" -- [WORD: read string '%s' of len %d]\n", word_buffer, len);
+    dprintf(" -- [WORD: read string '%s' of len %d]\n", word_buffer, len);
 
     stack_push(&data_stack, len);
     stack_push(&data_stack, addr);
@@ -288,15 +351,33 @@ void NUMBER() {
 
     char* endptr = (char*)1;
 
-    int number = strtol(addr, &endptr, 10);
+    int number = strtol(addr, &endptr, ctx.BASE);
     int chars_remaining = len - (endptr - addr); // endptr - addr is offset of first invalid character, and
     // we want difference between the length of the string and this offset to know the amount of invalid chars
 
-    printf(" -- [NUMBER: result: %d, %d chars rem]\n", number, chars_remaining);
+    dprintf(" -- [NUMBER: result: %d, %d chars rem]\n", number, chars_remaining);
 
     stack_push(&data_stack, number);
     stack_push(&data_stack, chars_remaining);
 }
+
+void FLOAT() {
+    char* addr = (char*)stack_pop(&data_stack);
+    int   len  = stack_pop(&data_stack);
+
+    char* endptr = (char*)1;
+
+    f32 number = strtof(addr, &endptr);
+    int chars_remaining = len - (endptr - addr); // endptr - addr is offset of first invalid character, and
+    // we want difference between the length of the string and this offset to know the amount of invalid chars
+
+    dprintf(" -- [FLOAT: result: %f, %d chars rem]\n", number, chars_remaining);
+
+    stack_push(&data_stack, *(u32 *)&number); // We DOOM now (and UB)
+    printf("%f\n", *(float*)&data_stack.data[data_stack.top]);
+    stack_push(&data_stack, chars_remaining);
+}
+
 
 
 void FIND() {
@@ -309,7 +390,7 @@ void FIND() {
     // Hvis vi har NULL har vi kommet til starten av lenken, og ordet er dermed ikke definert.
     // Putt 0 på stacken og retruner
     if (NULL == latest) {
-	printf(" -- [FIND: '%s' not a word, assume number]\n", name_addr);
+	dprintf(" -- [FIND: '%s' not a word, assume number]\n", name_addr);
 	stack_push(&data_stack, name_len);
 	stack_push(&data_stack, (u32)name_addr);
 	stack_push(&data_stack, 0);
@@ -333,7 +414,7 @@ void FIND() {
     // Strengene er like, så vi fant vår peker!
     // Push addresse på stack og vær lykkelig
     stack_push(&data_stack, (u32)latest);
-    printf(" -- [FIND: '%s' a word, data addr %p]\n", name_addr, latest);
+    dprintf(" -- [FIND: '%s' a word, data addr %p]\n", name_addr, latest);
     return;
 
 }
@@ -355,7 +436,7 @@ void CREATE() {
     char* name_addr = (char*)stack_pop(&data_stack);
     int   name_len  = stack_pop(&data_stack);
     
-    printf(" -- [CREATE: creating word '%s'\n", name_addr);
+    dprintf(" -- [CREATE: creating word '%s'\n", name_addr);
     declare_word(name_addr, 0);
 }
 
@@ -393,7 +474,7 @@ void TICK() {
 }
 
 void BRANCH() {
-    puts(" -- [BRANCH]\n");
+    dprintf(" -- [BRANCH]\n");
     u32 base_addr = (u32)ctx.instr_ptr;
     u32 offset    = *ctx.instr_ptr; // Add offset (avoid pointer arithmetic.........)
     ctx.instr_ptr = (u32*)(base_addr + offset);
@@ -421,7 +502,7 @@ void TELL() {
 // @RYDD - Kanskje gjør som Jonesforth gjør - trekk ut _NUMBER, _WORD, etc som funsjoner som tar et parameter.
 //         Det gjør denne koden litt tydeligere
 void INTERPRET() {
-    puts(" -- [INTERPRET]");
+    dprintf(" -- [INTERPRET]\n");
 
     /*
       HVA VIL VIL GJØRE???
@@ -452,18 +533,32 @@ void INTERPRET() {
 
     // -> 1st CASE: LITERAL
     if (addr == 0) {
+	DUP2(); // Make a duplicate in case we need to try a float parsing
 	NUMBER();
 	u32 remaining = stack_pop(&data_stack);
 	u32 number    = stack_pop(&data_stack);
 	if (remaining != 0) {
-	    printf(" -- [INTERPRET: parse failed, disregarding input]\n");
-	    return;
+
+	    dprintf(" -- [INTERPRET: NUMBER failed, trying FLOAT]\n");
+	    FLOAT();
+	    remaining = stack_pop(&data_stack);
+	    number    = stack_pop(&data_stack);
+	    // @NOTE !!!! - number has the bits of a float now...
+
+	    if (remaining != 0) {
+		dprintf(" -- [INTERPRET: FLOAT failed, disregarding input]\n");
+		return;
+	    }
+	} else {
+	    // We don't need the duplicates, since int parsing was successful!
+	    stack_pop(&data_stack);
+	    stack_pop(&data_stack);
 	}
 
 	// --> 2nd CASE: COMPILE
 	// Compile in LIT and the number
 	if (ctx.STATE == STATE_COMPILE) {
-	    printf(" -- [INTERPRET: Compiling literal into current word!]\n");
+	    dprintf(" -- [INTERPRET: Compiling literal into current word!]\n");
 	    stack_push(&data_stack, number);
 	    stack_push(&data_stack, (u32)LIT);
 	    COMMA();
@@ -473,7 +568,7 @@ void INTERPRET() {
 
 	// --> 2nd CASE IMMEDIATE
 	// Push integer on the stack
-	printf(" -- [INTERPRET: Putting literal value on the stack!]\n");
+	dprintf(" -- [INTERPRET: Putting literal value on the stack!]\n");
 	stack_push(&data_stack, number);
 	return;
     }
@@ -495,7 +590,7 @@ void INTERPRET() {
     if (ctx.STATE == STATE_COMPILE) {
 	// --> 2nd CASE: COMPILE
 	// Compile the eax addr of the function into the current word
-	printf(" -- [INTERPRET: in compile mode, appending to function into the stack]\n");
+	dprintf(" -- [INTERPRET: in compile mode, appending to function into the stack]\n");
 	stack_push(&data_stack, (u32)word->data);
 	COMMA();
 	return;
@@ -503,15 +598,54 @@ void INTERPRET() {
 
  immediate:
     // --> 2nd CASE: IMMEDIATE
-    printf(" -- [INTERPRET: in immediate mode, executing word]\n");
+    dprintf(" -- [INTERPRET: in immediate mode, executing word]\n");
     // Call function corresponding to the word
     ctx.eax = eax_ptr;
-    printf(" -- [MAIN: calling %p\n", (u32*)*ctx.eax);
+    dprintf(" -- [MAIN: calling %p\n", (u32*)*ctx.eax);
     _call(*ctx.eax);
     return;
 }
 
+
+void CHAR() {
+    WORD();
+    char* str = (char*)stack_pop(&data_stack);
+    char ch = str[0];
+    stack_push(&data_stack, ch);
+}
+
+void EXECUTE() {
+    FN* fun = (FN*)stack_pop(&data_stack);
+    _call(*fun);
+}
+
+void SYSCALL3() {
+    u32 call_num = stack_pop(&data_stack);
+    u32 p1 = stack_pop(&data_stack);
+    u32 p2 = stack_pop(&data_stack);
+    u32 p3 = stack_pop(&data_stack);
+    syscall(call_num, p1, p2, p3);
+}
+
+void SYSCALL2() {
+    u32 call_num = stack_pop(&data_stack);
+    u32 p1 = stack_pop(&data_stack);
+    u32 p2 = stack_pop(&data_stack);
+    syscall(call_num, p1, p2);
+}
+
+void SYSCALL1() {
+    u32 call_num = stack_pop(&data_stack);
+    u32 p1 = stack_pop(&data_stack);
+    syscall(call_num, p1);
+}
+
+void SYSCALL0() {
+    u32 call_num = stack_pop(&data_stack);
+    syscall(call_num);
+}
+
 void DIE() {
-    puts("DIE!\n");
+    dprintf("DIE!\n");
     return;
 }

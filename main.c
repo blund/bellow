@@ -48,7 +48,7 @@ int main() {
 	ctx.HERE = ptr0;
 
 	// @MERK - 
-	declare_word("DOCOL", 0);
+	declare_word("docol", 0);
 	add_code_to_word(DOCOL);
 	// Declare some base variables
 
@@ -57,32 +57,58 @@ int main() {
 	declare_var_LATEST();
 	declare_var_SZ();
 	declare_var_BASE();
+	declare_var_DPRINT();
+
 	declare_const_VERSION();
 
-	declare_word("EXIT", 0);
+	declare_word("exit", 0);
 	add_code_to_word(EXIT);
 
-	declare_word("DIE", 0);
-	add_code_to_word(DIE);
-
-    
-	declare_word("LIT", 0);
+	declare_word("lit", 0);
 	add_code_to_word(LIT);
 
-	declare_word("DROP", 0);
+	declare_word("drop", 0);
 	add_code_to_word(DROP);
 
-	declare_word("SWAP", 0);
+	declare_word("swap", 0);
 	add_code_to_word(SWAP);
 
-	declare_word("DUP", 0);
+	declare_word("dup", 0);
 	add_code_to_word(DUP);
 
+	declare_word("dup2", 0);
+	add_code_to_word(DUP2);
+
+	
 	declare_word("+", 0);
 	add_code_to_word(ADD);
   
+	declare_word("-", 0);
+	add_code_to_word(SUB);
+
 	declare_word("*", 0);
 	add_code_to_word(MUL);
+	
+	declare_word("/", 0);
+	add_code_to_word(DIV);
+
+	declare_word("%", 0);
+	add_code_to_word(MOD);
+
+
+	declare_word("f+", 0);
+	add_code_to_word(FADD);
+
+	declare_word("f-", 0);
+	add_code_to_word(FSUB);
+  
+	declare_word("f*", 0);
+	add_code_to_word(FMUL);
+
+	declare_word("f/", 0);
+	add_code_to_word(FDIV);
+
+
 
 	declare_word("!", 0);
 	add_code_to_word(STORE);
@@ -91,25 +117,25 @@ int main() {
 	add_code_to_word(FETCH);
 
 	
-	declare_word("KEY", 0);
+	declare_word("key", 0);
 	add_code_to_word(KEY);
 
-	declare_word("WORD", 0);
+	declare_word("word", 0);
 	add_code_to_word(WORD);
 
-	declare_word("NUMBER", 0);
+	declare_word("number", 0);
 	add_code_to_word(NUMBER);
 
-	declare_word("FIND", 0);
+	declare_word("find", 0);
 	add_code_to_word(FIND);
 
-	declare_word(">CFA", 0);
+	declare_word(">cfa", 0);
 	add_code_to_word(TCFA);
 
-	declare_word(">DFA", 0);
+	declare_word(">dfa", 0);
 	add_code_to_word(TDFA);
 
-	declare_word("CREATE", 0);
+	declare_word("create", 0);
 	add_code_to_word(CREATE);
 
 	declare_word("[", FLAG_HIDDEN);
@@ -118,10 +144,10 @@ int main() {
 	declare_word("]", 0);
 	add_code_to_word(RBRAC);
 
-	declare_word("IMMEDIATE", 0);
+	declare_word("immediate", 0);
 	add_code_to_word(IMMEDIATE);
 
-	declare_word("HIDDEN", 0);
+	declare_word("hidden", 0);
 	add_code_to_word(HIDDEN);
 
 
@@ -149,23 +175,45 @@ int main() {
 	add_code_to_word(LBRAC);
 	add_code_to_word(EXIT);
 
-	declare_word("HIDE", 0);
+	declare_word("hide", 0);
 	add_code_to_word(DOCOL);
 	add_code_to_word(WORD);
 	add_code_to_word(FIND);
 	add_code_to_word(HIDDEN);
 	add_code_to_word(EXIT);
     
-	declare_word("INTERPRET", 0);
+	declare_word("interpret", 0);
 	add_code_to_word(INTERPRET);
 	
-	Word* quit = declare_word("QUIT", 0);
+	Word* quit = declare_word("quit", 0);
 	add_code_to_word(DOCOL);
 	add_code_to_word(RZ);
 	add_code_to_word(RSPSTORE);
 	add_code_to_word(INTERPRET);
 	add_code_to_word(BRANCH);
 	add_code_to_word((FN)-8);
+
+	declare_word("interpret", 0);
+	add_code_to_word(INTERPRET);
+
+	declare_word("char", 0);
+	add_code_to_word(CHAR);
+
+	declare_word("execute", 0);
+	add_code_to_word(EXECUTE);
+
+	declare_word("syscall3", 0);
+	add_code_to_word(SYSCALL3);
+
+	declare_word("syscall2", 0);
+	add_code_to_word(SYSCALL2);
+
+	declare_word("syscall1", 0);
+	add_code_to_word(SYSCALL1);
+
+	declare_word("syscall0", 0);
+	add_code_to_word(SYSCALL0);
+
 
 	// ~~~ SETUP! ~~~
 	ctx.S0 = (u32)ptr0;

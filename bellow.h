@@ -1,5 +1,7 @@
 #include <stdint.h>
+#include <stdbool.h>
 
+#define f32 float
 #define u32 uint32_t
 #define u8  uint8_t
 
@@ -37,6 +39,8 @@ typedef struct ForthCtx {
     u32 BASE;
 
     u32 R0;
+
+    bool debug_prints;
 } ForthCtx;
 
 enum Flags {
@@ -63,6 +67,7 @@ make_header_var(HERE);
 make_header_var(LATEST);
 make_header_var(S0);
 make_header_var(BASE);
+make_header_var(DPRINT);
 
 // A simple, very type unsafe stack.
 typedef struct Stack {
@@ -84,9 +89,20 @@ void LIT();
 void DROP();
 void SWAP();
 void DUP();
+void DUP2();
 
 void ADD();
+void SUB();
 void MUL();
+void DIV();
+void MOD();
+
+void FADD();
+void FSUB();
+void FMUL();
+void FDIV();
+void FMOD();
+
 
 void STORE();
 void FETCH();
@@ -118,6 +134,13 @@ void TELL();
 
 void INTERPRET();
 void DIE();
+
+void CHAR();
+void EXECUTE();
+void SYSCALL3();
+void SYSCALL2();
+void SYSCALL1();
+void SYSCALL0();
 
 void declare_var_STATE();
 void declare_var_HERE();
