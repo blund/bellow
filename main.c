@@ -2,22 +2,6 @@
 #include <stdlib.h>
 
 #include "bellow.h"
-/*
-  void dummy0() {
-  puts("A");
-  NEXT();
-  }
-
-  void dummy1() {
-  puts("B");
-  NEXT();
-  }
-
-  void dummy2() {
-  puts("C");
-  }
-*/
-
 
 /*
 //  --- !!TODO!! ---
@@ -30,13 +14,6 @@ extern Stack    data_stack;
 
 extern u32*    word_curr_ptr;
 extern Word*   last_link;
-
-void say_the_thing() {
-	static int a = 0;
-	a ++;
-	printf("%d\n", a);
-}
-
 int main() {
 	// Sett opp terminal
 	void* ptr0 = malloc(4096*8 * sizeof(int));
