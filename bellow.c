@@ -142,7 +142,6 @@ void EXIT() {
     return;
 }
 
-
 void LIT() {
     ctx.eax = _deref(ctx.instr_ptr); 	// Samme som lodsl
     ctx.instr_ptr++;
@@ -152,7 +151,7 @@ void LIT() {
 
 void DROP() {
     u32 val = stack_pop(&data_stack);
-    dprintf("dropped: %d (%f)\n", val, *(f32*)&val);
+    dprintf(" -- [DROP: dropped: %d (%f)]", val, *(f32*)&val);
 }
 
 void SWAP() {
@@ -217,22 +216,22 @@ void /* it's just a */ FADD() {
 }
 
 void FSUB() {
-    f32 a = stack_pop(&data_stack);
-    f32 b = stack_pop(&data_stack);
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
     f32 sum = (*(float*)&a - *(float*)&b);
     stack_push(&data_stack, *(u32*)&sum);
 }
 
 void FMUL() {
-    f32 a = stack_pop(&data_stack);
-    f32 b = stack_pop(&data_stack);
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
     f32 sum = (*(float*)&a * *(float*)&b);
     stack_push(&data_stack, *(u32*)&sum);
 }
 
 void FDIV() {
-    f32 a = stack_pop(&data_stack);
-    f32 b = stack_pop(&data_stack);
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
     f32 sum = (*(float*)&a / *(float*)&b);
     stack_push(&data_stack, *(u32*)&sum);
 }
