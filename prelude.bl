@@ -1,0 +1,56 @@
+
+: true  1 ;
+: false 0 ;
+
+: literal immediate ' lit , , ;
+
+: ':' [ char : ] literal ;
+: ';' [ char ; ] literal ;
+: '(' [ char ( ] literal ;
+: ')' [ char ) ] literal ;
+: '"' [ char " ] literal ;
+: 'A' [ char A ] literal ;
+: '0' [ char 0 ] literal ;
+: '-' [ char - ] literal ;
+: '.' [ char . ] literal ;
+
+: peek
+	dup
+	drop
+;
+	
+: peek2
+	dup2 \ TEST
+	drop \ TEST
+	drop
+;
+
+: lit2 immediate ' lit , 2 , ;
+: double lit2 * ;	
+	
+1 DPRINT !
+
+: if immediate
+	' 0branch ,
+	HERE @
+	0 ,
+;
+
+: then immediate
+	dup
+	HERE @ swap -
+	swap !
+;
+
+: else intermediate
+	' branch ,		\ definite branch to just over the false-part
+	HERE @			\ save location of the offset on the stack
+	0 ,				\ compile a dummy offset
+	swap			\ now back-fill the original (IF) offset
+	dup				\ same as for THEN word above
+	HERE @ swap -
+	swap !
+;
+
+: epic if 5 then ;
+
