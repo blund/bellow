@@ -85,6 +85,11 @@ int main() {
 	declare_word("f/", 0);
 	add_code_to_word(FDIV);
 
+	declare_word("0=", 0);
+	add_code_to_word(ZEROEQ);
+
+	declare_word("=", 0);
+	add_code_to_word(EQ);
 
 
 	declare_word("!", 0);
@@ -115,18 +120,29 @@ int main() {
 	declare_word("create", 0);
 	add_code_to_word(CREATE);
 
-	declare_word("[", FLAG_HIDDEN);
+	declare_word("[", FLAG_IMMED);
 	add_code_to_word(LBRAC);
 
 	declare_word("]", 0);
 	add_code_to_word(RBRAC);
 
-	declare_word("immediate", 0);
+	declare_word("immediate", FLAG_IMMED);
 	add_code_to_word(IMMEDIATE);
 
 	declare_word("hidden", 0);
 	add_code_to_word(HIDDEN);
 
+	declare_word(",", 0);
+	add_code_to_word(COMMA);
+
+	declare_word("'", 0);
+	add_code_to_word(TICK);
+
+	declare_word("branch", 0);
+	add_code_to_word(BRANCH);
+
+	declare_word("0branch", 0);
+	add_code_to_word(BRANCH0);
 
 	declare_word(":", 0);
 	add_code_to_word(DOCOL);
@@ -170,11 +186,11 @@ int main() {
 	add_code_to_word(BRANCH);
 	add_code_to_word((FN)-8);
 
-	declare_word("interpret", 0);
-	add_code_to_word(INTERPRET);
-
 	declare_word("char", 0);
 	add_code_to_word(CHAR);
+
+	declare_word("emit", 0);
+	add_code_to_word(EMIT);
 
 	declare_word("execute", 0);
 	add_code_to_word(EXECUTE);

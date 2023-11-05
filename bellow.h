@@ -103,6 +103,8 @@ void FMUL();
 void FDIV();
 void FMOD();
 
+void ZEROEQ();
+void EQ();
 
 void STORE();
 void FETCH();
@@ -125,12 +127,14 @@ void LBRAC();
 void RBRAC();
 void IMMEDIATE();
 void HIDDEN();
+void TICK();
 
 void BRANCH();
 void BRANCH0();
 
 void LITSTRING();
 void TELL();
+void EMIT();
 
 void INTERPRET();
 void DIE();

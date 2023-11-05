@@ -9,14 +9,12 @@
 
 #define panic(arg, ...) printf(arg, ##__VA_ARGS__)
 
-
-
 char    word_buffer[32];
 ForthCtx ctx = {
     .instr_ptr = 0,
     .eax = 0,
     .LATEST = 0,
-    .debug_prints = 1,
+    .debug_prints = 0,
 };
 
 #define dprintf(arg, ...) do { if (ctx.debug_prints) printf(arg, ##__VA_ARGS__); } while (0)
@@ -90,7 +88,7 @@ make_declare_var("HERE",   HERE,   &ctx.HERE,   0);
 make_declare_var("LATEST", LATEST, &ctx.LATEST, 0);
 make_declare_var("S0",     SZ,     &ctx.S0,     0);
 make_declare_var("BASE",   BASE,   &ctx.BASE,  10);
-make_declare_var("DPRINT", DPRINT, &ctx.debug_prints,  1);
+make_declare_var("DPRINT", DPRINT, &ctx.debug_prints,  0);
 
 
 #define make_declare_const(name, label, value)	\
@@ -143,15 +141,14 @@ void EXIT() {
 }
 
 void LIT() {
-    ctx.eax = _deref(ctx.instr_ptr); 	// Samme som lodsl
-    ctx.instr_ptr++;
+    ctx.eax = _deref(ctx.instr_ptr++); 	// Samme som lodsl
     stack_push(&data_stack, ctx.eax);
 }
 
 
 void DROP() {
     u32 val = stack_pop(&data_stack);
-    dprintf(" -- [DROP: dropped: %d (%f)]", val, *(f32*)&val);
+    dprintf(" -- [DROP: dropped: %d (%f) (%c)]\n", val, *(f32*)&val, val);
 }
 
 void SWAP() {
@@ -237,6 +234,18 @@ void FDIV() {
 }
 
 
+void ZEROEQ() {
+    u32 a = stack_pop(&data_stack);
+    stack_push(&data_stack, !a);
+}
+
+void EQ() {
+    u32 a = stack_pop(&data_stack);
+    u32 b = stack_pop(&data_stack);
+    stack_push(&data_stack, a == b);
+}
+
+
 
 
 void STORE() {
@@ -289,8 +298,9 @@ char _KEY() {
     return getchar();
 }
 
+
 void KEY() {
-    char c = _KEY();
+    char c = getchar();
     stack_push(&data_stack, c);
 }
 
@@ -313,7 +323,8 @@ void WORD() {
     switch(c) {
     case('\\'): goto handle_comment;
     case(' '):  goto look_for_start;
-    case('\n'):  goto look_for_start;
+    case('\t'):  goto look_for_start;
+    case('\n'): goto look_for_start;
     }
 
     *pointer++ = c;
@@ -322,7 +333,7 @@ void WORD() {
     // Hvis vi ikke har en kommentar eller en blank, har vi et ord!
 
     c = _KEY();
-    if (c != ' ' && c != '\n') {
+    if (c != ' ' && c != '\n' && c != '\t') {
 	*pointer++ = c;
 	goto read_word;
     }
@@ -373,10 +384,8 @@ void FLOAT() {
     dprintf(" -- [FLOAT: result: %f, %d chars rem]\n", number, chars_remaining);
 
     stack_push(&data_stack, *(u32 *)&number); // We DOOM now (and UB)
-    printf("%f\n", *(float*)&data_stack.data[data_stack.top]);
     stack_push(&data_stack, chars_remaining);
 }
-
 
 
 void FIND() {
@@ -465,11 +474,10 @@ void HIDDEN() {
 }
 
 void TICK() {
+    dprintf(" -- [TICK: putting literal on the stack]\n");
     // @FIKS - lodsl, skriv om med WORD, FIND, >CFA i Forth
-    u32 next = *ctx.instr_ptr;
-    ctx.instr_ptr++;
-
-    stack_push(&data_stack, next);
+    ctx.eax = _deref(ctx.instr_ptr++); 	// Samme som lodsl
+    stack_push(&data_stack, (u32)ctx.eax);
 }
 
 void BRANCH() {
@@ -484,9 +492,7 @@ void BRANCH0() {
     if (top == 0) {
 	BRANCH();
     } else {
-	// lodsl
-	ctx.eax = (u32*)ctx.instr_ptr;
-	ctx.instr_ptr++;
+	ctx.eax = _deref(ctx.instr_ptr++); 	// Samme som lodsl
     }
 }
 
@@ -615,7 +621,7 @@ void CHAR() {
 
 void EXECUTE() {
     FN* fun = (FN*)stack_pop(&data_stack);
-    _call(*fun);
+    _call(fun);
 }
 
 void SYSCALL3() {
